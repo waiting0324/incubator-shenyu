@@ -30,11 +30,11 @@ import java.util.concurrent.ThreadPoolExecutor;
  * @param <T> the type parameter
  */
 public class QueueConsumer<T> implements WorkHandler<DataEvent<T>> {
-    
+
     private final OrderlyExecutor executor;
-    
+
     private final QueueConsumerFactory<T> factory;
-    
+
     /**
      * Instantiates a new Queue consumer.
      *
@@ -45,19 +45,23 @@ public class QueueConsumer<T> implements WorkHandler<DataEvent<T>> {
         this.executor = executor;
         this.factory = factory;
     }
-    
+
     @Override
     public void onEvent(final DataEvent<T> t) {
         if (t != null) {
+            // 获取线程池
             ThreadPoolExecutor executor = orderly(t);
+            // 通过 工厂 创建 队列消费者执行器
             QueueConsumerExecutor<T> queueConsumerExecutor = factory.create();
+            // 将 事件数据 加入到 执行器 中
             queueConsumerExecutor.setData(t.getData());
-            // help gc
+            // 将事件设为 NULL，方便 GC 回收
             t.setData(null);
+            // 在线程池中执行任务
             executor.execute(queueConsumerExecutor);
         }
     }
-    
+
     private ThreadPoolExecutor orderly(final DataEvent<T> t) {
         if (t instanceof OrderlyDataEvent && !isEmpty(((OrderlyDataEvent<T>) t).getHash())) {
             return executor.select(((OrderlyDataEvent<T>) t).getHash());
@@ -65,7 +69,7 @@ public class QueueConsumer<T> implements WorkHandler<DataEvent<T>> {
             return executor;
         }
     }
-    
+
     private boolean isEmpty(final String t) {
         return t == null || t.isEmpty();
     }

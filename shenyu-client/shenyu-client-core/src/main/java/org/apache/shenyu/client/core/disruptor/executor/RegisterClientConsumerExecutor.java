@@ -32,24 +32,26 @@ import java.util.stream.Collectors;
  * The type Consumer executor.
  */
 public final class RegisterClientConsumerExecutor<T extends DataTypeParent> extends QueueConsumerExecutor<T> {
-    
+
     private final Map<DataType, ExecutorTypeSubscriber<T>> subscribers;
-    
+
     private RegisterClientConsumerExecutor(final Map<DataType, ExecutorTypeSubscriber<T>> executorSubscriberMap) {
         this.subscribers = new HashMap<>(executorSubscriberMap);
     }
 
     @Override
     public void run() {
+        // 获取事件数据
         final T data = getData();
+        // 根据 事件类型 获取 订阅者，调用 订阅者 的 executor 方法
         subscribers.get(data.getType()).executor(Lists.newArrayList(data));
     }
-    
+
     /**
      * The type Register client executor factory.
      */
     public static class RegisterClientExecutorFactory<T extends DataTypeParent> extends AbstractQueueConsumerFactory<T> {
-        
+
         @Override
         public RegisterClientConsumerExecutor<T> create() {
             Map<DataType, ExecutorTypeSubscriber<T>> map = getSubscribers()

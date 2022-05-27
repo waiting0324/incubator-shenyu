@@ -28,9 +28,9 @@ import java.util.Collection;
  * The type Metadata executor subscriber.
  */
 public class ShenyuClientMetadataExecutorSubscriber implements ExecutorTypeSubscriber<MetaDataRegisterDTO> {
-    
+
     private final ShenyuClientRegisterRepository shenyuClientRegisterRepository;
-    
+
     /**
      * Instantiates a new shenyu client metadata executor subscriber.
      *
@@ -39,15 +39,17 @@ public class ShenyuClientMetadataExecutorSubscriber implements ExecutorTypeSubsc
     public ShenyuClientMetadataExecutorSubscriber(final ShenyuClientRegisterRepository shenyuClientRegisterRepository) {
         this.shenyuClientRegisterRepository = shenyuClientRegisterRepository;
     }
-    
+
     @Override
     public DataType getType() {
         return DataType.META_DATA;
     }
-    
+
     @Override
     public void executor(final Collection<MetaDataRegisterDTO> metaDataRegisterDTOList) {
+        // 遍历所有的 事件数据
         for (MetaDataRegisterDTO metaDataRegisterDTO : metaDataRegisterDTOList) {
+            // 调用 注册Repository 持久化事件数据
             shenyuClientRegisterRepository.persistInterface(metaDataRegisterDTO);
         }
     }

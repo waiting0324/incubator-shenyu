@@ -29,11 +29,11 @@ import org.apache.shenyu.register.common.type.DataTypeParent;
  * The type shenyu client register event publisher.
  */
 public class ShenyuClientRegisterEventPublisher {
-    
+
     private static final ShenyuClientRegisterEventPublisher INSTANCE = new ShenyuClientRegisterEventPublisher();
-    
+
     private DisruptorProviderManage<DataTypeParent> providerManage;
-    
+
     /**
      * Get instance.
      *
@@ -42,7 +42,7 @@ public class ShenyuClientRegisterEventPublisher {
     public static ShenyuClientRegisterEventPublisher getInstance() {
         return INSTANCE;
     }
-    
+
     /**
      * Start.
      *
@@ -55,14 +55,16 @@ public class ShenyuClientRegisterEventPublisher {
         providerManage = new DisruptorProviderManage<>(factory);
         providerManage.startup();
     }
-    
+
     /**
      * Publish event.
      *
      * @param data the data
      */
     public void publishEvent(final DataTypeParent data) {
+        // 获取 DisruptorProvider
         DisruptorProvider<DataTypeParent> provider = providerManage.getProvider();
+        // 发送数据
         provider.onData(data);
     }
 }

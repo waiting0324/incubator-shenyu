@@ -41,25 +41,25 @@ import java.util.Optional;
  */
 @Join
 public class HttpClientRegisterRepository extends FailbackRegistryRepository {
-    
+
     private static final Logger LOGGER = LoggerFactory.getLogger(HttpClientRegisterRepository.class);
 
     private static URIRegisterDTO uriRegisterDTO;
 
     private String username;
-    
+
     private String password;
-    
+
     private List<String> serverList;
-    
+
     private String accessToken;
-    
+
     /**
      * Instantiates a new Http client register repository.
      */
     public HttpClientRegisterRepository() {
     }
-    
+
     /**
      * Instantiates a new Http client register repository.
      *
@@ -68,7 +68,7 @@ public class HttpClientRegisterRepository extends FailbackRegistryRepository {
     public HttpClientRegisterRepository(final ShenyuRegisterCenterConfig config) {
         init(config);
     }
-    
+
     @Override
     public void init(final ShenyuRegisterCenterConfig config) {
         this.username = config.getProps().getProperty(Constants.USER_NAME);
@@ -76,7 +76,7 @@ public class HttpClientRegisterRepository extends FailbackRegistryRepository {
         this.serverList = Lists.newArrayList(Splitter.on(",").split(config.getServerLists()));
         this.setAccessToken();
     }
-    
+
     /**
      * Persist uri.
      *
@@ -90,7 +90,7 @@ public class HttpClientRegisterRepository extends FailbackRegistryRepository {
         doRegister(registerDTO, Constants.URI_PATH, Constants.URI);
         uriRegisterDTO = registerDTO;
     }
-    
+
     @Override
     public void doPersistInterface(final MetaDataRegisterDTO metadata) {
         doRegister(metadata, Constants.META_PATH, Constants.META_TYPE);
@@ -114,17 +114,22 @@ public class HttpClientRegisterRepository extends FailbackRegistryRepository {
             }
         }
     }
-    
+
     private <T> void doRegister(final T t, final String path, final String type) {
+
+        // 遍历 Shenyu 服务端地址
         for (String server : serverList) {
+            // 将 服务端地址 + path 拼接成 请求地址
             String concat = server.concat(path);
             try {
+                // 设置 AccessToken
                 if (StringUtils.isBlank(accessToken)) {
                     this.setAccessToken();
                     if (StringUtils.isBlank(accessToken)) {
                         throw new NullPointerException("accessToken is null");
                     }
                 }
+                // 通过 HTTP 请求，注册 事件数据
                 RegisterUtils.doRegister(GsonUtils.getInstance().toJson(t), concat, type, accessToken);
                 return;
             } catch (Exception e) {

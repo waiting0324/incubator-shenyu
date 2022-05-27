@@ -57,7 +57,9 @@ public final class RegisterUtils {
             LOGGER.error("{} client register error accessToken is null, please check the config : {} ", type, json);
             return;
         }
+        // 设置 HTTP 请求头
         Headers headers = new Headers.Builder().add(Constants.X_ACCESS_TOKEN, accessToken).build();
+        // 通过 OkHttp 发起 HTTP 请求，远程注册 事件数据
         String result = OkHttpTools.getInstance().post(url, json, headers);
         if (Objects.equals(SUCCESS, result)) {
             LOGGER.info("{} client register success: {} ", type, json);
