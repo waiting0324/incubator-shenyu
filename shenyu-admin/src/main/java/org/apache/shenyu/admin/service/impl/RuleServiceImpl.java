@@ -68,17 +68,17 @@ import static org.apache.shenyu.admin.utils.ListUtil.map;
  */
 @Service
 public class RuleServiceImpl implements RuleService {
-    
+
     private final RuleMapper ruleMapper;
-    
+
     private final RuleConditionMapper ruleConditionMapper;
-    
+
     private final SelectorMapper selectorMapper;
-    
+
     private final PluginMapper pluginMapper;
-    
+
     private final RuleEventPublisher ruleEventPublisher;
-    
+
     public RuleServiceImpl(final RuleMapper ruleMapper,
                            final RuleConditionMapper ruleConditionMapper,
                            final SelectorMapper selectorMapper,
@@ -90,7 +90,7 @@ public class RuleServiceImpl implements RuleService {
         this.pluginMapper = pluginMapper;
         this.ruleEventPublisher = ruleEventPublisher;
     }
-    
+
     @Override
     public List<RuleVO> searchByCondition(final RuleQueryCondition condition) {
         condition.init();
@@ -100,21 +100,29 @@ public class RuleServiceImpl implements RuleService {
         }
         return rules;
     }
-    
+
     @Override
     public String registerDefault(final RuleDTO ruleDTO) {
+
+        // 如果当前 Rule 已存在，则返回
         if (Objects.nonNull(ruleMapper.findBySelectorIdAndName(ruleDTO.getSelectorId(), ruleDTO.getName()))) {
             return "";
         }
+
+        // 如果当前 Rule 不存在，则将 DTO 转成 DO
         RuleDO ruleDO = RuleDO.buildRuleDO(ruleDTO);
         if (StringUtils.isEmpty(ruleDTO.getId())) {
+            // 保存 Rule 数据
             ruleMapper.insertSelective(ruleDO);
+            // 保存 Rule Condition 数据
             addCondition(ruleDO, ruleDTO.getRuleConditions());
         }
+
+        // 发送 Rule、Rule Condition 注册事件
         ruleEventPublisher.onRegister(ruleDO, ruleDTO.getRuleConditions());
         return ruleDO.getId();
     }
-    
+
     /**
      * create or update rule.
      *
@@ -126,7 +134,7 @@ public class RuleServiceImpl implements RuleService {
     public int createOrUpdate(final RuleDTO ruleDTO) {
         return RuleService.super.createOrUpdate(ruleDTO);
     }
-    
+
     @Override
     public int create(final RuleDTO ruleDTO) {
         RuleDO ruleDO = RuleDO.buildRuleDO(ruleDTO);
@@ -137,7 +145,7 @@ public class RuleServiceImpl implements RuleService {
         }
         return ruleCount;
     }
-    
+
     @Override
     public int update(final RuleDTO ruleDTO) {
         final RuleDO before = ruleMapper.selectById(ruleDTO.getId());
@@ -152,7 +160,7 @@ public class RuleServiceImpl implements RuleService {
         }
         return ruleCount;
     }
-    
+
     /**
      * find rule by id.
      *
@@ -164,7 +172,7 @@ public class RuleServiceImpl implements RuleService {
         return RuleVO.buildRuleVO(ruleMapper.selectById(id),
                 map(ruleConditionMapper.selectByQuery(new RuleConditionQuery(id)), RuleConditionVO::buildRuleConditionVO));
     }
-    
+
     /**
      * find page of rule by query.
      *
@@ -177,27 +185,27 @@ public class RuleServiceImpl implements RuleService {
     public CommonPager<RuleVO> listByPage(final RuleQuery ruleQuery) {
         return PageResultUtils.result(ruleQuery.getPageParameter(), () -> map(ruleMapper.selectByQuery(ruleQuery), RuleVO::buildRuleVO));
     }
-    
+
     @Override
     public List<RuleData> listAll() {
         return this.buildRuleDataList(ruleMapper.selectAll());
     }
-    
+
     @Override
     public List<RuleData> findBySelectorId(final String selectorId) {
         return this.buildRuleDataList(ruleMapper.findBySelectorId(selectorId));
     }
-    
+
     @Override
     public List<RuleData> findBySelectorIdList(final List<String> selectorIdList) {
         return this.buildRuleDataList(ruleMapper.findBySelectorIds(selectorIdList));
     }
-    
+
     @Override
     public RuleDO findByName(final String name) {
         return ruleMapper.findByName(name);
     }
-    
+
     /**
      * delete rules.
      *
@@ -215,7 +223,7 @@ public class RuleServiceImpl implements RuleService {
         }
         return deleteCount;
     }
-    
+
     /**
      * listen {@link BatchSelectorDeletedEvent} delete rule.
      *
@@ -233,40 +241,40 @@ public class RuleServiceImpl implements RuleService {
             }
         }
     }
-    
+
     private void addCondition(final RuleDO ruleDO, final List<RuleConditionDTO> ruleConditions) {
         for (RuleConditionDTO ruleCondition : ruleConditions) {
             ruleCondition.setRuleId(ruleDO.getId());
             ruleConditionMapper.insertSelective(RuleConditionDO.buildRuleConditionDO(ruleCondition));
         }
     }
-    
+
     private List<RuleData> buildRuleDataList(final List<RuleDO> ruleDOList) {
-        
+
         if (CollectionUtils.isEmpty(ruleDOList)) {
             return new ArrayList<>();
         }
         Map<String, String> ruleDOMap = ruleDOList.stream()
                 .filter(Objects::nonNull)
                 .collect(Collectors.toMap(RuleDO::getId, RuleDO::getSelectorId, (selectorId1, selectorId2) -> selectorId1));
-        
+
         Map<String, String> pluginIdMap = Optional.ofNullable(selectorMapper.selectByIdSet(new HashSet<>(ruleDOMap.values()))).orElseGet(ArrayList::new)
                 .stream()
                 .filter(Objects::nonNull)
                 .collect(Collectors.toMap(SelectorDO::getId, SelectorDO::getPluginId, (value1, value2) -> value1));
-        
+
         Map<String, PluginDO> pluginDOMap = Optional.ofNullable(pluginMapper.selectByIds(new ArrayList<>(pluginIdMap.values())))
                 .orElseGet(ArrayList::new)
                 .stream()
                 .filter(Objects::nonNull)
                 .collect(Collectors.toMap(PluginDO::getId, Function.identity(), (value1, value2) -> value1));
-        
+
         Map<String, List<ConditionData>> conditionMap = Optional.ofNullable(ruleConditionMapper.selectByRuleIdSet(ruleDOMap.keySet()))
                 .orElseGet(ArrayList::new)
                 .stream()
                 .filter(Objects::nonNull)
                 .collect(Collectors.toMap(RuleConditionDO::getRuleId, ruleConditionDO -> ListUtil.of(ConditionTransfer.INSTANCE.mapToRuleDO(ruleConditionDO)), ListUtil::merge));
-        
+
         return ruleDOList.stream()
                 .filter(Objects::nonNull)
                 .map(ruleDO -> {

@@ -52,8 +52,12 @@ public class WebsocketDataChangedListener implements DataChangedListener {
 
     @Override
     public void onRuleChanged(final List<RuleData> ruleDataList, final DataEventTypeEnum eventType) {
+
+        // 将 Rule 数据，包装成 WebsocketData
         WebsocketData<RuleData> configData =
                 new WebsocketData<>(ConfigGroupEnum.RULE.name(), eventType.name(), ruleDataList);
+
+        // 通过 WebSocket 同步数据
         WebsocketCollector.send(GsonUtils.getInstance().toJson(configData), eventType);
     }
 

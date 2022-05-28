@@ -40,15 +40,17 @@ import java.util.stream.Collectors;
  * The type Consumer executor.
  */
 public final class RegisterServerConsumerExecutor extends QueueConsumerExecutor<Collection<DataTypeParent>> {
-    
+
     private final Map<DataType, ExecutorSubscriber<DataTypeParent>> subscribers;
-    
+
     private RegisterServerConsumerExecutor(final Map<DataType, ExecutorTypeSubscriber<DataTypeParent>> executorSubscriberMap) {
         this.subscribers = new HashMap<>(executorSubscriberMap);
     }
-    
+
     @Override
     public void run() {
+
+        // 根据 Data 类型校验数据，仅保留数据完整的对象
         Collection<DataTypeParent> results = getData()
                 .stream()
                 .filter(this::isValidData)
@@ -56,10 +58,11 @@ public final class RegisterServerConsumerExecutor extends QueueConsumerExecutor<
         if (CollectionUtils.isEmpty(results)) {
             return;
         }
-        
+
+        // 根据 Data 类型获得 ExecutorSubscriber，执行 executor 方法，注册数据
         selectExecutor(results).executor(results);
     }
-    
+
     private boolean isValidData(final Object data) {
         if (data instanceof URIRegisterDTO) {
             URIRegisterDTO uriRegisterDTO = (URIRegisterDTO) data;
@@ -74,19 +77,19 @@ public final class RegisterServerConsumerExecutor extends QueueConsumerExecutor<
         }
         return true;
     }
-    
+
     private ExecutorSubscriber<DataTypeParent> selectExecutor(final Collection<DataTypeParent> list) {
         final Optional<DataTypeParent> first = list.stream().findFirst();
         return subscribers.get(first.orElseThrow(() -> new RuntimeException("the data type is not found")).getType());
     }
-    
+
     public static class RegisterServerExecutorFactory implements QueueConsumerFactory<Collection<DataTypeParent>> {
-    
+
         /**
          * The Subscribers.
          */
         private final Set<ExecutorTypeSubscriber<? extends DataTypeParent>> subscribers = new HashSet<>();
-    
+
         @Override
         public QueueConsumerExecutor<Collection<DataTypeParent>> create() {
             Map<DataType, ExecutorTypeSubscriber<DataTypeParent>> maps = getSubscribers()
@@ -95,13 +98,13 @@ public final class RegisterServerConsumerExecutor extends QueueConsumerExecutor<
                     .collect(Collectors.toMap(ExecutorTypeSubscriber::getType, e -> e));
             return new RegisterServerConsumerExecutor(maps);
         }
-    
+
         @Override
         public String fixName() {
             return "shenyu_register_server";
         }
-    
-    
+
+
         /**
          * Add subscribers abstract queue consumer factory.
          *
@@ -112,7 +115,7 @@ public final class RegisterServerConsumerExecutor extends QueueConsumerExecutor<
             subscribers.add(subscriber);
             return this;
         }
-    
+
         /**
          * Gets subscribers.
          *

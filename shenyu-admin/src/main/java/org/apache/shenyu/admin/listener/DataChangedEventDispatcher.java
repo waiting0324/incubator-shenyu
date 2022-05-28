@@ -47,10 +47,14 @@ public class DataChangedEventDispatcher implements ApplicationListener<DataChang
         this.applicationContext = applicationContext;
     }
 
-    @Override
     @SuppressWarnings("unchecked")
+    @Override
     public void onApplicationEvent(final DataChangedEvent event) {
+
+        // 循环所有的监听器
         for (DataChangedListener listener : listeners) {
+
+            // 根据不同的 事件类型，呼叫不同的 监听器方法
             switch (event.getGroupKey()) {
                 case APP_AUTH:
                     listener.onAppAuthChanged((List<AppAuthData>) event.getSource(), event.getEventType());
@@ -63,7 +67,8 @@ public class DataChangedEventDispatcher implements ApplicationListener<DataChang
                     break;
                 case SELECTOR:
                     listener.onSelectorChanged((List<SelectorData>) event.getSource(), event.getEventType());
-                    applicationContext.getBean(LoadServiceDocEntry.class).loadDocOnSelectorChanged((List<SelectorData>) event.getSource(), event.getEventType());
+                    applicationContext.getBean(LoadServiceDocEntry.class)
+                            .loadDocOnSelectorChanged((List<SelectorData>) event.getSource(), event.getEventType());
                     break;
                 case META_DATA:
                     listener.onMetaDataChanged((List<MetaData>) event.getSource(), event.getEventType());

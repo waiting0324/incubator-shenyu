@@ -57,11 +57,12 @@ public class ShenyuClientHttpRegistryController implements ShenyuClientServerReg
     @PostMapping("/register-metadata")
     @ResponseBody
     public String registerMetadata(@RequestBody final MetaDataRegisterDTO metaDataRegisterDTO) {
+        // 通过 Publisher 注册 元数据对象
         publisher.publish(metaDataRegisterDTO);
         return ShenyuResultMessage.SUCCESS;
     }
-    
-    
+
+
     /**
      * Register uri string.
      *
@@ -74,5 +75,5 @@ public class ShenyuClientHttpRegistryController implements ShenyuClientServerReg
         publisher.publish(uriRegisterDTO);
         return ShenyuResultMessage.SUCCESS;
     }
-    
+
 }

@@ -52,13 +52,13 @@ import static org.apache.shenyu.admin.utils.ListUtil.map;
  */
 @Component
 public class RuleEventPublisher implements AdminDataModelChangedEventPublisher<RuleDO> {
-    
+
     private final ApplicationEventPublisher publisher;
-    
+
     private final RuleConditionMapper ruleConditionMapper;
-    
+
     private final RuleMapper ruleMapper;
-    
+
     public RuleEventPublisher(final ApplicationEventPublisher publisher,
                               final RuleConditionMapper ruleConditionMapper,
                               final RuleMapper ruleMapper) {
@@ -66,7 +66,7 @@ public class RuleEventPublisher implements AdminDataModelChangedEventPublisher<R
         this.ruleConditionMapper = ruleConditionMapper;
         this.ruleMapper = ruleMapper;
     }
-    
+
     /**
      * on rule created.
      *
@@ -76,7 +76,7 @@ public class RuleEventPublisher implements AdminDataModelChangedEventPublisher<R
     public void onCreated(final RuleDO rule) {
         publish(new RuleCreatedEvent(rule, SessionUtil.visitorName()));
     }
-    
+
     /**
      * on rule created.
      *
@@ -87,7 +87,7 @@ public class RuleEventPublisher implements AdminDataModelChangedEventPublisher<R
         publish(new RuleCreatedEvent(rule, SessionUtil.visitorName()));
         publishEvent(rule, condition);
     }
-    
+
     /**
      * on rule updated.
      *
@@ -99,7 +99,7 @@ public class RuleEventPublisher implements AdminDataModelChangedEventPublisher<R
         publish(new RuleUpdatedEvent(rule, before, SessionUtil.visitorName()));
         publishEvent(rule, condition);
     }
-    
+
     /**
      * on rule updated.
      *
@@ -110,7 +110,7 @@ public class RuleEventPublisher implements AdminDataModelChangedEventPublisher<R
     public void onUpdated(final RuleDO rule, final RuleDO before) {
         publish(new RuleUpdatedEvent(rule, before, SessionUtil.visitorName()));
     }
-    
+
     /**
      * on rule deleted.
      *
@@ -120,7 +120,7 @@ public class RuleEventPublisher implements AdminDataModelChangedEventPublisher<R
     public void onDeleted(final RuleDO rule) {
         publish(new RuleChangedEvent(rule, null, EventTypeEnum.RULE_DELETE, SessionUtil.visitorName()));
     }
-    
+
     /**
      * rule delete.
      *
@@ -135,7 +135,7 @@ public class RuleEventPublisher implements AdminDataModelChangedEventPublisher<R
                 map(conditionsRuleGroup.get(r.getId()), ConditionTransfer.INSTANCE::mapToRuleDO)));
         publisher.publishEvent(new DataChangedEvent(ConfigGroupEnum.RULE, DataEventTypeEnum.DELETE, ruleData));
     }
-    
+
     /**
      * register.
      *
@@ -143,9 +143,10 @@ public class RuleEventPublisher implements AdminDataModelChangedEventPublisher<R
      * @param condition condition
      */
     public void onRegister(final RuleDO rule, final List<RuleConditionDTO> condition) {
+        // 发布事件
         publishEvent(rule, condition);
     }
-    
+
     /**
      * event.
      *
@@ -155,12 +156,15 @@ public class RuleEventPublisher implements AdminDataModelChangedEventPublisher<R
     public void publish(final AdminDataModelChangedEvent event) {
         publisher.publishEvent(event);
     }
-    
+
     private void publishEvent(final RuleDO ruleDO, final List<RuleConditionDTO> condition) {
-        // publish change event.
+
+        // 将 RoleDO 转成 RoleBO
         final RuleData rule = RuleDO.transFrom(ruleDO,
                 ruleMapper.getPluginNameByRuleId(ruleDO.getId()),
                 map(condition, ConditionTransfer.INSTANCE::mapToRuleDTO));
+
+        // 指定 事件分类 与 事件类型，并通过 Spring 的 ApplicationEventPublisher 发布事件
         publisher.publishEvent(new DataChangedEvent(ConfigGroupEnum.RULE, DataEventTypeEnum.UPDATE, Collections.singletonList(rule)));
     }
 }

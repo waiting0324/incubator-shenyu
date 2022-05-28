@@ -53,31 +53,31 @@ import java.util.stream.Collectors;
  * Abstract strategy.
  */
 public abstract class AbstractShenyuClientRegisterServiceImpl extends FallbackShenyuClientRegisterService implements ShenyuClientRegisterService {
-    
+
     /**
      * The Event publisher.
      */
     @Resource
     private ApplicationEventPublisher eventPublisher;
-    
+
     /**
      * The Selector service.
      */
     @Resource
     private SelectorService selectorService;
-    
+
     @Resource
     private MetaDataService metaDataService;
-    
+
     /**
      * The Rule service.
      */
     @Resource
     private RuleService ruleService;
-    
+
     @Resource
     private UpstreamCheckService upstreamCheckService;
-    
+
     /**
      * Selector handler string.
      *
@@ -85,21 +85,21 @@ public abstract class AbstractShenyuClientRegisterServiceImpl extends FallbackSh
      * @return the string
      */
     protected abstract String selectorHandler(MetaDataRegisterDTO metaDataDTO);
-    
+
     /**
      * Rule handler string.
      *
      * @return the string
      */
     protected abstract String ruleHandler();
-    
+
     /**
      * Register metadata.
      *
      * @param metaDataDTO the meta data dto
      */
     protected abstract void registerMetadata(MetaDataRegisterDTO metaDataDTO);
-    
+
     /**
      * Build handle string.
      *
@@ -108,7 +108,7 @@ public abstract class AbstractShenyuClientRegisterServiceImpl extends FallbackSh
      * @return the string
      */
     protected abstract String buildHandle(List<URIRegisterDTO> uriList, SelectorDO selectorDO);
-    
+
     /**
      * Register meta data.
      *
@@ -117,23 +117,31 @@ public abstract class AbstractShenyuClientRegisterServiceImpl extends FallbackSh
      */
     @Override
     public String register(final MetaDataRegisterDTO dto) {
-        //handler plugin selector
+
+        // 根据 元数据 类型 获得 选择器处理器
         String selectorHandler = selectorHandler(dto);
+        // 查询 选择器id，若 选择器 不存在，则注册一个后返回id
         String selectorId = selectorService.registerDefault(dto, PluginNameAdapter.rpcTypeAdapter(rpcType()), selectorHandler);
-        //handler selector rule
+
+        // 根据 当前 Class 获得 选择器规则处理器
         String ruleHandler = ruleHandler();
+        // 将 选择器id、元数据、选择器规则处理器 合并成 规则DTO
         RuleDTO ruleDTO = buildRpcDefaultRuleDTO(selectorId, dto, ruleHandler);
+        // 查询 规则id，若 规则 不存在，则注册一个后返回id
         ruleService.registerDefault(ruleDTO);
-        //handler register metadata
+
+        // 根据 当前 Class 注册 元数据对象
         registerMetadata(dto);
-        //handler context path
+
+        // 如果 根路径 存在，则注册 根路径
         String contextPath = dto.getContextPath();
         if (StringUtils.isNotEmpty(contextPath)) {
             registerContextPath(dto);
         }
+
         return ShenyuResultMessage.SUCCESS;
     }
-    
+
     /**
      * Register uri string.
      *
@@ -166,7 +174,7 @@ public abstract class AbstractShenyuClientRegisterServiceImpl extends FallbackSh
         }
         return ShenyuResultMessage.SUCCESS;
     }
-    
+
     /**
      * Gets meta data service.
      *
@@ -175,7 +183,7 @@ public abstract class AbstractShenyuClientRegisterServiceImpl extends FallbackSh
     public MetaDataService getMetaDataService() {
         return metaDataService;
     }
-    
+
     /**
      * Gets selector service.
      *
@@ -184,7 +192,7 @@ public abstract class AbstractShenyuClientRegisterServiceImpl extends FallbackSh
     public SelectorService getSelectorService() {
         return selectorService;
     }
-    
+
     /**
      * Gets rule service.
      *
@@ -193,7 +201,7 @@ public abstract class AbstractShenyuClientRegisterServiceImpl extends FallbackSh
     public RuleService getRuleService() {
         return ruleService;
     }
-    
+
     /**
      * Do submit.
      *
@@ -206,7 +214,7 @@ public abstract class AbstractShenyuClientRegisterServiceImpl extends FallbackSh
         return commonUpstreamList.stream().map(upstream -> upstreamCheckService.submit(selectorId, upstream))
                 .collect(Collectors.toList()).stream().findAny().orElse(false);
     }
-    
+
     /**
      * Build context path default rule dto rule dto.
      *
@@ -219,11 +227,11 @@ public abstract class AbstractShenyuClientRegisterServiceImpl extends FallbackSh
         String contextPath = metaDataDTO.getContextPath();
         return buildRuleDTO(selectorId, ruleHandler, contextPath, PathUtils.decoratorPath(contextPath));
     }
-    
+
     private RuleDTO buildRpcDefaultRuleDTO(final String selectorId, final MetaDataRegisterDTO metaDataDTO, final String ruleHandler) {
         return buildRuleDTO(selectorId, ruleHandler, metaDataDTO.getRuleName(), metaDataDTO.getPath());
     }
-    
+
     private RuleDTO buildRuleDTO(final String selectorId, final String ruleHandler, final String ruleName, final String path) {
         RuleDTO ruleDTO = RuleDTO.builder()
                 .selectorId(selectorId)

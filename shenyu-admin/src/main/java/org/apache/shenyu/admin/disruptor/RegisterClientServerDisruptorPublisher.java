@@ -35,11 +35,11 @@ import java.util.stream.Collectors;
  * The type Disruptor publisher.
  */
 public class RegisterClientServerDisruptorPublisher implements ShenyuClientServerRegisterPublisher {
-    
+
     private static final RegisterClientServerDisruptorPublisher INSTANCE = new RegisterClientServerDisruptorPublisher();
-    
+
     private DisruptorProviderManage<Collection<DataTypeParent>> providerManage;
-    
+
     /**
      * Gets instance.
      *
@@ -48,7 +48,7 @@ public class RegisterClientServerDisruptorPublisher implements ShenyuClientServe
     public static RegisterClientServerDisruptorPublisher getInstance() {
         return INSTANCE;
     }
-    
+
     /**
      * start.
      *
@@ -61,20 +61,22 @@ public class RegisterClientServerDisruptorPublisher implements ShenyuClientServe
         providerManage = new DisruptorProviderManage<>(factory);
         providerManage.startup();
     }
-    
+
     @Override
     public void publish(final DataTypeParent data) {
+        // 获取 DisruptorProvider
         DisruptorProvider<Collection<DataTypeParent>> provider = providerManage.getProvider();
+        // 调用 DisruptorProvider 的 onData 方法，发送数据
         provider.onData(Collections.singleton(data));
     }
-    
+
     @Override
     public void publish(final Collection<? extends DataTypeParent> dataList) {
         DisruptorProvider<Collection<DataTypeParent>> provider = providerManage.getProvider();
         provider.onData(dataList.stream().map(DataTypeParent.class::cast).collect(Collectors.toList()));
-        
+
     }
-    
+
     @Override
     public void close() {
         providerManage.getProvider().shutdown();

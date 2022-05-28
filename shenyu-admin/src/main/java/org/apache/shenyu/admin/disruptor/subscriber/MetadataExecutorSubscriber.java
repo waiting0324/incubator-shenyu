@@ -44,10 +44,15 @@ public class MetadataExecutorSubscriber implements ExecutorTypeSubscriber<MetaDa
 
     @Override
     public void executor(final Collection<MetaDataRegisterDTO> metaDataRegisterDTOList) {
+
+        // 遍历所有的元数据对象
         for (MetaDataRegisterDTO metaDataRegisterDTO : metaDataRegisterDTOList) {
+
+            // 根据 元数据 的 RPC 类型，获取 RegisterService
             ShenyuClientRegisterService shenyuClientRegisterService = this.shenyuClientRegisterService.get(metaDataRegisterDTO.getRpcType());
             Objects.requireNonNull(shenyuClientRegisterService);
             synchronized (shenyuClientRegisterService) {
+                // 调用 RegisterService 的 注册方法，注册 元数据 对象
                 shenyuClientRegisterService.register(metaDataRegisterDTO);
             }
         }
