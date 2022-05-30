@@ -60,13 +60,18 @@ public abstract class AbstractDataHandler<T> implements DataHandler {
 
     @Override
     public void handle(final String json, final String eventType) {
+
+        // 根据 当前 Class，将 事件数据 转换成对应的 BO
         List<T> dataList = convert(json);
 
         if (CollectionUtils.isEmpty(dataList)) {
             return;
         }
 
+        // 将 String 类型的 事件类型，转换成 枚举
         DataEventTypeEnum eventTypeEnum = DataEventTypeEnum.acquireByName(eventType);
+
+        // 根据不同的 事件类型，调用不同的方法
         switch (eventTypeEnum) {
             case REFRESH:
             case MYSELF:

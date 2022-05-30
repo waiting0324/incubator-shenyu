@@ -46,6 +46,7 @@ public class RuleDataHandler extends AbstractDataHandler<RuleData> {
 
     @Override
     protected void doUpdate(final List<RuleData> dataList) {
+        // 循环调用 插件数据订阅者 的 onRuleSubscribe 方法
         dataList.forEach(pluginDataSubscriber::onRuleSubscribe);
     }
 

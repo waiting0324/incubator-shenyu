@@ -41,9 +41,26 @@ import java.util.stream.Collectors;
  * The type Divide plugin data handler.
  */
 public class DividePluginDataHandler implements PluginDataHandler {
-    
+
     public static final Supplier<CommonHandleCache<String, DivideRuleHandle>> CACHED_HANDLE = new BeanHolder<>(CommonHandleCache::new);
-    
+
+    @Override
+    public void handlerRule(final RuleData ruleData) {
+
+        // 获取 RuleData 的 handle 数据
+        Optional.ofNullable(ruleData.getHandle()).ifPresent(s -> {
+
+            // 将 handle 数据 转换成 DivideRuleHandle 对象
+            DivideRuleHandle divideRuleHandle = GsonUtils.getInstance().fromJson(s, DivideRuleHandle.class);
+
+            // 根据 Rule 对象，获取 Rule id 后，更新专属于 DividePlugin 的缓存
+            CACHED_HANDLE.get().cachedHandle(CacheKeyUtils.INST.getKey(ruleData), divideRuleHandle);
+
+            // 删除 MetaDataCache 的 DIVIDE_CACHE 缓存
+            MetaDataCache.getInstance().clean();
+        });
+    }
+
     @Override
     public void handlerSelector(final SelectorData selectorData) {
         List<DivideUpstream> upstreamList = GsonUtils.getInstance().fromList(selectorData.getHandle(), DivideUpstream.class);
@@ -63,17 +80,6 @@ public class DividePluginDataHandler implements PluginDataHandler {
     }
 
     @Override
-    public void handlerRule(final RuleData ruleData) {
-        Optional.ofNullable(ruleData.getHandle()).ifPresent(s -> {
-            DivideRuleHandle divideRuleHandle = GsonUtils.getInstance().fromJson(s, DivideRuleHandle.class);
-            CACHED_HANDLE.get().cachedHandle(CacheKeyUtils.INST.getKey(ruleData), divideRuleHandle);
-            // the update is also need to clean, but there is no way to
-            // distinguish between crate and update, so it is always clean
-            MetaDataCache.getInstance().clean();
-        });
-    }
-
-    @Override
     public void removeRule(final RuleData ruleData) {
         Optional.ofNullable(ruleData.getHandle()).ifPresent(s -> CACHED_HANDLE.get().removeHandle(CacheKeyUtils.INST.getKey(ruleData)));
         MetaDataCache.getInstance().clean();
@@ -83,7 +89,7 @@ public class DividePluginDataHandler implements PluginDataHandler {
     public String pluginNamed() {
         return PluginEnum.DIVIDE.getName();
     }
-    
+
     private List<Upstream> convertUpstreamList(final List<DivideUpstream> upstreamList) {
         return upstreamList.stream().map(u -> Upstream.builder()
                 .protocol(u.getProtocol())

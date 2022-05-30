@@ -42,20 +42,20 @@ import java.util.concurrent.TimeUnit;
  * The type shenyu websocket client.
  */
 public final class ShenyuWebsocketClient extends WebSocketClient {
-    
+
     /**
      * logger.
      */
     private static final Logger LOG = LoggerFactory.getLogger(ShenyuWebsocketClient.class);
-    
+
     private volatile boolean alreadySync = Boolean.FALSE;
-    
+
     private final WebsocketDataHandler websocketDataHandler;
-    
+
     private final Timer timer;
-    
+
     private TimerTask timerTask;
-    
+
     /**
      * Instantiates a new shenyu websocket client.
      *
@@ -73,7 +73,7 @@ public final class ShenyuWebsocketClient extends WebSocketClient {
         this.timer = WheelTimerFactory.getSharedTimer();
         this.connection();
     }
-    
+
     private void connection() {
         this.connectBlocking();
         this.timer.add(timerTask = new AbstractRoundTask(null, TimeUnit.SECONDS.toMillis(10)) {
@@ -83,7 +83,7 @@ public final class ShenyuWebsocketClient extends WebSocketClient {
             }
         });
     }
-    
+
     @Override
     public boolean connectBlocking() {
         boolean success = false;
@@ -98,7 +98,7 @@ public final class ShenyuWebsocketClient extends WebSocketClient {
         }
         return success;
     }
-    
+
     @Override
     public void onOpen(final ServerHandshake serverHandshake) {
         if (!alreadySync) {
@@ -106,22 +106,23 @@ public final class ShenyuWebsocketClient extends WebSocketClient {
             alreadySync = true;
         }
     }
-    
+
     @Override
     public void onMessage(final String result) {
+        // 接收 Socket 消息
         handleResult(result);
     }
-    
+
     @Override
     public void onClose(final int i, final String s, final boolean b) {
         this.close();
     }
-    
+
     @Override
     public void onError(final Exception e) {
         LOG.error("websocket server[{}] is error.....", getURI(), e);
     }
-    
+
     @Override
     public void close() {
         alreadySync = false;
@@ -129,7 +130,7 @@ public final class ShenyuWebsocketClient extends WebSocketClient {
             super.close();
         }
     }
-    
+
     /**
      * Now close.
      * now close. will cancel the task execution.
@@ -138,7 +139,7 @@ public final class ShenyuWebsocketClient extends WebSocketClient {
         this.close();
         timerTask.cancel();
     }
-    
+
     private void healthCheck() {
         try {
             if (!this.isOpen()) {
@@ -151,13 +152,23 @@ public final class ShenyuWebsocketClient extends WebSocketClient {
             LOG.error("websocket connect is error :{}", e.getMessage());
         }
     }
-    
+
     private void handleResult(final String result) {
         LOG.info("handleResult({})", result);
+
+        // 将 Socket 信息转换成 WebsocketData 对象
         WebsocketData<?> websocketData = GsonUtils.getInstance().fromJson(result, WebsocketData.class);
+
+        // 获取 配置分类
         ConfigGroupEnum groupEnum = ConfigGroupEnum.acquireByName(websocketData.getGroupType());
+
+        // 获取 事件类型
         String eventType = websocketData.getEventType();
+
+        // 获取 事件数据
         String json = GsonUtils.getInstance().toJson(websocketData.getData());
+
+        // 调用 WebsocketDataHandler 处理 事件数据
         websocketDataHandler.executor(groupEnum, json, eventType);
     }
 }

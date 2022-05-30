@@ -33,13 +33,14 @@ public class CommonHandleCache<K, V> implements HandleCache<K, V> {
     private final ConcurrentHashMap<K, V> cached = new ConcurrentHashMap<>();
 
     @Override
-    public V obtainHandle(final K key) {
-        return cached.get(key);
+    public void cachedHandle(final K key, final V value) {
+        // 更新本地缓存
+        Optional.ofNullable(key).ifPresent(data -> cached.put(key, value));
     }
 
     @Override
-    public void cachedHandle(final K key, final V value) {
-        Optional.ofNullable(key).ifPresent(data -> cached.put(key, value));
+    public V obtainHandle(final K key) {
+        return cached.get(key);
     }
 
     @Override

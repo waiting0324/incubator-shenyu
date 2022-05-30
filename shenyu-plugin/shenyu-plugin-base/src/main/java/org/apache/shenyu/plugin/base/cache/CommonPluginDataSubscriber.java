@@ -40,9 +40,9 @@ import java.util.stream.Collectors;
  * The type Common plugin data subscriber.
  */
 public class CommonPluginDataSubscriber implements PluginDataSubscriber {
-    
+
     private static final Logger LOG = LoggerFactory.getLogger(CommonPluginDataSubscriber.class);
-    
+
     private final Map<String, PluginDataHandler> handlerMap;
 
     private ApplicationEventPublisher eventPublisher;
@@ -85,22 +85,22 @@ public class CommonPluginDataSubscriber implements PluginDataSubscriber {
             });
         }
     }
-    
+
     @Override
     public void onSubscribe(final PluginData pluginData) {
         subscribeDataHandler(pluginData, DataEventTypeEnum.UPDATE);
     }
-    
+
     @Override
     public void unSubscribe(final PluginData pluginData) {
         subscribeDataHandler(pluginData, DataEventTypeEnum.DELETE);
     }
-    
+
     @Override
     public void refreshPluginDataAll() {
         BaseDataCache.getInstance().cleanPluginData();
     }
-    
+
     @Override
     public void refreshPluginDataSelf(final List<PluginData> pluginDataList) {
         if (CollectionUtils.isEmpty(pluginDataList)) {
@@ -108,22 +108,22 @@ public class CommonPluginDataSubscriber implements PluginDataSubscriber {
         }
         BaseDataCache.getInstance().cleanPluginDataSelf(pluginDataList);
     }
-    
+
     @Override
     public void onSelectorSubscribe(final SelectorData selectorData) {
         subscribeDataHandler(selectorData, DataEventTypeEnum.UPDATE);
     }
-    
+
     @Override
     public void unSelectorSubscribe(final SelectorData selectorData) {
         subscribeDataHandler(selectorData, DataEventTypeEnum.DELETE);
     }
-    
+
     @Override
     public void refreshSelectorDataAll() {
         BaseDataCache.getInstance().cleanSelectorData();
     }
-    
+
     @Override
     public void refreshSelectorDataSelf(final List<SelectorData> selectorDataList) {
         if (CollectionUtils.isEmpty(selectorDataList)) {
@@ -131,22 +131,23 @@ public class CommonPluginDataSubscriber implements PluginDataSubscriber {
         }
         BaseDataCache.getInstance().cleanSelectorDataSelf(selectorDataList);
     }
-    
+
     @Override
     public void onRuleSubscribe(final RuleData ruleData) {
+        // 调用处理 规则数据 的方法，更新数据
         subscribeDataHandler(ruleData, DataEventTypeEnum.UPDATE);
     }
-    
+
     @Override
     public void unRuleSubscribe(final RuleData ruleData) {
         subscribeDataHandler(ruleData, DataEventTypeEnum.DELETE);
     }
-    
+
     @Override
     public void refreshRuleDataAll() {
         BaseDataCache.getInstance().cleanRuleData();
     }
-    
+
     @Override
     public void refreshRuleDataSelf(final List<RuleData> ruleDataList) {
         if (CollectionUtils.isEmpty(ruleDataList)) {
@@ -154,17 +155,20 @@ public class CommonPluginDataSubscriber implements PluginDataSubscriber {
         }
         BaseDataCache.getInstance().cleanRuleDataSelf(ruleDataList);
     }
-    
+
     private <T> void subscribeDataHandler(final T classData, final DataEventTypeEnum dataType) {
+        // 如果 事件类型 为 UPDATE 则 更新本地缓存
         if (dataType == DataEventTypeEnum.UPDATE) {
             Optional.ofNullable(classData)
                     .ifPresent(data -> updateCacheData(classData));
-        } else if (dataType == DataEventTypeEnum.DELETE) {
+        }
+        // 如果 事件类型 为 DELETE 则 删除本地缓存
+        else if (dataType == DataEventTypeEnum.DELETE) {
             Optional.ofNullable(classData)
                     .ifPresent(data -> removeCacheData(classData));
         }
     }
-    
+
     /**
      * update cache data.
      *
@@ -172,32 +176,50 @@ public class CommonPluginDataSubscriber implements PluginDataSubscriber {
      * @param <T>  data type, support is [{@link PluginData},{@link SelectorData},{@link RuleData}]
      */
     private <T> void updateCacheData(@NonNull final T data) {
+
+        // 如果 事件数据 是 PluginData 类型
         if (data instanceof PluginData) {
             PluginData pluginData = (PluginData) data;
             final PluginData oldPluginData = BaseDataCache.getInstance().obtainPluginData(pluginData.getName());
+
+            // 更新 BaseDataCache 中的缓存
             BaseDataCache.getInstance().cachePluginData(pluginData);
+
+            // 从 handlerMap 中获取 PluginDataHandler，再调用 handlerPlugin 方法 更新缓存
             Optional.ofNullable(handlerMap.get(pluginData.getName()))
                     .ifPresent(handler -> handler.handlerPlugin(pluginData));
 
-            // update enabled plugins
+            // 通知 插件 启用状态
             PluginHandlerEventEnum state = Boolean.TRUE.equals(pluginData.getEnabled())
                     ? PluginHandlerEventEnum.ENABLED : PluginHandlerEventEnum.DISABLED;
             eventPublisher.publishEvent(new PluginHandlerEvent(state, pluginData));
 
-            // sorted plugin
+            // 对 插件 进行排序
             sortPluginIfOrderChange(oldPluginData, pluginData);
-        } else if (data instanceof SelectorData) {
+        }
+        // 如果 事件数据 是 SelectorData 类型
+        else if (data instanceof SelectorData) {
             SelectorData selectorData = (SelectorData) data;
+
+            // 更新 BaseDataCache 中的缓存
             BaseDataCache.getInstance().cacheSelectData(selectorData);
+
+            // 从 handlerMap 中获取 PluginDataHandler，再调用 handlerSelector 方法 更新缓存
             Optional.ofNullable(handlerMap.get(selectorData.getPluginName()))
                     .ifPresent(handler -> handler.handlerSelector(selectorData));
-            
-        } else if (data instanceof RuleData) {
+
+        }
+        // 如果 事件数据 是 RuleData 类型
+        else if (data instanceof RuleData) {
             RuleData ruleData = (RuleData) data;
+
+            // 更新 BaseDataCache 中的缓存
             BaseDataCache.getInstance().cacheRuleData(ruleData);
+
+            // 从 handlerMap 中获取 PluginDataHandler，再调用 handlerRule 方法 更新缓存
             Optional.ofNullable(handlerMap.get(ruleData.getPluginName()))
                     .ifPresent(handler -> handler.handlerRule(ruleData));
-            
+
         }
     }
 
@@ -235,13 +257,13 @@ public class CommonPluginDataSubscriber implements PluginDataSubscriber {
             BaseDataCache.getInstance().removeSelectData(selectorData);
             Optional.ofNullable(handlerMap.get(selectorData.getPluginName()))
                     .ifPresent(handler -> handler.removeSelector(selectorData));
-            
+
         } else if (data instanceof RuleData) {
             RuleData ruleData = (RuleData) data;
             BaseDataCache.getInstance().removeRuleData(ruleData);
             Optional.ofNullable(handlerMap.get(ruleData.getPluginName()))
                     .ifPresent(handler -> handler.removeRule(ruleData));
-            
+
         }
     }
 }

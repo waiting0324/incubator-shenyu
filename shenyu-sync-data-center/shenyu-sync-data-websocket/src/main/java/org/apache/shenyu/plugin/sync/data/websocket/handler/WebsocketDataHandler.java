@@ -56,6 +56,7 @@ public class WebsocketDataHandler {
      * @param eventType the event type
      */
     public void executor(final ConfigGroupEnum type, final String json, final String eventType) {
+        // 根据不同的 事件类型 获取不同的 处理器，再调用 处理器 的 handle 方法
         ENUM_MAP.get(type).handle(json, eventType);
     }
 }
